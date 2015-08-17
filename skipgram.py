@@ -12,22 +12,27 @@ import numpy as np
 
 # linearly reduce this to 0
 LR = 0.025
-NUM_EPOCHS = 3
-K = 25
+NUM_EPOCHS = 10
+K = 2
 
-def build_indices():
-    "Return a dict.  Dict assigns a number to each word."
-    indices= {}
+def build_indices(threshold=5):
+    "Return a dict.  Dict assigns a number to each word (if count exceeded)."
+    indices = {}
+    counts = {}
     i = 0
     for line in open('data/srep00196-s3.csv','r'):
         # skip header
         if '#' not in line:
             words = line.rstrip().split(',')            
             for word in words:
-                if word not in indices:
+                if word not in counts:
+                    counts[word] = 0
+                else:
+                    counts[word] += 1
+                if counts[word] >= threshold and word not in indices:
                     indices[word] = i
                     i = i + 1
-    return indices
+    return (indices, counts)
 
 def line_generator(indices):
     "Generator, yield list of word indices for each line in data."
@@ -35,11 +40,11 @@ def line_generator(indices):
         # skip headers
         if '#' not in line:
             tokens = line.rstrip().split(',')            
-            yield [indices[t] for t in tokens]
+            yield [indices[t] for t in tokens if t in indices]
 
 
 if __name__ == '__main__':
-    indices = build_indices()
+    (indices, counts) = build_indices()
     N = len(indices)
     W = np.random.uniform(low=-0.5/K, high=0.5/K, size=(N, K))
 
@@ -70,5 +75,6 @@ if __name__ == '__main__':
     for row in W:
         tokens = [i2word[i]]
         tokens.extend(row.tolist())
+        tokens.append(counts[i2word[i]])
         print ','.join([str(t) for t in tokens])
         i += 1
